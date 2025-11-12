@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Food Option Picker</title>
+  <style>
+    :root {
+      --bg: #f7f7f8;
+      --card: #ffffff;
+      --ink: #0a0a0a;
+      --muted: #6b7280;
+      --border: #e5e7eb;
+      --hint: #f3f4f6;
+      --accent: #0a0a0a;
+      --radius: 16px;
+      --shadow: 0 10px 30px rgba(0,0,0,.06);
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      color: var(--ink); background: linear-gradient(#fafafa, var(--bg));
+    }
+    .wrap { max-width: 720px; margin: 0 auto; padding: 20px; }
+    .card {
+      background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+      box-shadow: var(--shadow); padding: 20px;
+    }
+    h1 { font-size: 22px; margin: 0 0 4px; }
+    p.lead { margin: 0 0 16px; color: var(--muted); font-size: 14px; }
+
+    .row { display: grid; gap: 12px; }
+    @media (min-width: 600px){ .row-2 { grid-template-columns: 1fr auto; } }
+
+    button { cursor: pointer; border: 0; }
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      padding: 14px 16px; border-radius: 14px; font-weight: 600; font-size: 15px;
+      background: var(--accent); color: white; transition: opacity .15s ease;
+    }
+    .btn:hover { opacity: .92; }
+    .btn:active { opacity: .85; }
+    .btn[disabled] { opacity: .5; cursor: not-allowed; }
+    .btn-lite { background: var(--hint); color: #111; }
+
+    .result-grid { display: grid; gap: 12px; grid-template-columns: 1fr; }
+    @media (min-width: 560px){ .result-grid { grid-template-columns: 1fr 1fr; } }
+    .tag {
+      background: #fafafa; border: 1px solid var(--border); border-radius: 14px; padding: 14px;
+    }
+    .tag .k { color: var(--muted); text-transform: uppercase; font-size: 11px; letter-spacing: .08em; }
+    .tag .v { margin-top: 4px; font-weight: 700; font-size: 20px; display:flex; align-items:center; gap:8px; text-transform: capitalize; }
+
+    .section-title { font-size: 13px; color: #374151; margin: 18px 0 8px; font-weight: 600; }
+
+    .editor .controls { display: flex; gap: 8px; margin-bottom: 10px; }
+    .editor input {
+      flex: 1; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--border);
+      background: white; font-size: 14px; outline: none;
+    }
+
+    footer { text-align:center; color: var(--muted); font-size: 12px; margin: 10px 0 0; }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <div class="card">
+      <header>
+        <h1>Food Option Picker</h1>
+        <p class="lead">Tap the button to get a <strong>protein</strong> + <strong>vegetables</strong> combo for today.</p>
+      </header>
+
+      <div class="row row-2">
+        <button id="pickBtn" class="btn">🍽️ Get Food Option for Today</button>
+        <button id="resetBtn" class="btn btn-lite" title="Restore the original lists">Reset lists</button>
+      </div>
+
+      <section id="result" style="margin-top:14px;">
+        <div class="result-grid">
+          <div class="tag">
+            <div class="k">Protein</div>
+            <div class="v"><span aria-hidden>🥣</span><span id="proteinOut">—</span></div>
+          </div>
+          <div class="tag">
+            <div class="k">Vegetables</div>
+            <div class="v"><span aria-hidden>🥦</span><span id="vegOut">—</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section style="margin-top: 18px;" class="row">
+        <div class="editor">
+          <div class="section-title">Add Protein</div>
+          <div class="controls">
+            <input id="proteinInput" placeholder="Add a protein (e.g. Paneer tikka)" />
+            <button id="addProtein" class="btn">Add</button>
+          </div>
+        </div>
+        <div class="editor">
+          <div class="section-title">Add Vegetable</div>
+          <div class="controls">
+            <input id="vegInput" placeholder="Add a vegetable (e.g. Zucchini)" />
+            <button id="addVeg" class="btn">Add</button>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <footer>Your added items are saved in your browser.</footer>
+  </main>
+
+  <script>
+    const DEFAULT_PROTEINS = [
+      "Butter chicken",
+      "Egg curry",
+      "Indian style chicken curry",
+      "Chicken breast with garlic and cream",
+      "Matar paneer",
+      "Yellow dal",
+      "Green dal",
+      "Spinach dal",
+    ];
+    const DEFAULT_VEGETABLES = [
+      "Bhindi",
+      "Lauki",
+      "Stir fried spinach",
+      "Pumpkin",
+      "Beans",
+      "Broccoli and mushroom",
+    ];
+
+    const LS = {
+      proteins: "foodpicker:proteins",
+      vegetables: "foodpicker:vegetables",
+    };
+
+    const readArray = (key, fallback) => {
+      try {
+        const raw = localStorage.getItem(key);
+        if (!raw) return [...fallback];
+        const v = JSON.parse(raw);
+        return Array.isArray(v) ? v : [...fallback];
+      } catch(e){ return [...fallback]; }
+    };
+
+    const writeArray = (key, arr) => localStorage.setItem(key, JSON.stringify(arr));
+
+    let proteins = readArray(LS.proteins, DEFAULT_PROTEINS);
+    let vegetables = readArray(LS.vegetables, DEFAULT_VEGETABLES);
+
+    const pickBtn = document.getElementById('pickBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const proteinOut = document.getElementById('proteinOut');
+    const vegOut = document.getElementById('vegOut');
+
+    const proteinInput = document.getElementById('proteinInput');
+    const vegInput = document.getElementById('vegInput');
+    const addProteinBtn = document.getElementById('addProtein');
+    const addVegBtn = document.getElementById('addVeg');
+
+    const getRandomInt = (max) => {
+      const array = new Uint32Array(1);
+      window.crypto.getRandomValues(array);
+      return array[0] % max;
+    };
+
+    const capitalizeWords = (str) => str.replace(/\b\w/g, c => c.toUpperCase());
+
+    const randPick = (arr) => {
+      if (!arr.length) return null;
+      const i = getRandomInt(arr.length);
+      return capitalizeWords(arr[i]);
+    };
+
+    const renderAll = () => {
+      pickBtn.disabled = !(proteins.length && vegetables.length);
+    };
+
+    pickBtn.addEventListener('click', () => {
+      if (!(proteins.length && vegetables.length)) return;
+      proteinOut.textContent = randPick(proteins);
+      vegOut.textContent = randPick(vegetables);
+    });
+
+    resetBtn.addEventListener('click', () => {
+      proteins = [...DEFAULT_PROTEINS];
+      vegetables = [...DEFAULT_VEGETABLES];
+      writeArray(LS.proteins, proteins);
+      writeArray(LS.vegetables, vegetables);
+      renderAll();
+    });
+
+    const addTo = (which) => {
+      const input = which === 'protein' ? proteinInput : vegInput;
+      let value = input.value.trim();
+      if (!value) return;
+      value = capitalizeWords(value);
+      if (which === 'protein') {
+        if (!proteins.includes(value)) proteins.push(value);
+        writeArray(LS.proteins, proteins);
+      } else {
+        if (!vegetables.includes(value)) vegetables.push(value);
+        writeArray(LS.vegetables, vegetables);
+      }
+      input.value = '';
+      renderAll();
+    };
+
+    addProteinBtn.addEventListener('click', () => addTo('protein'));
+    addVegBtn.addEventListener('click', () => addTo('vegetable'));
+
+    proteinInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') addTo('protein'); });
+    vegInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') addTo('vegetable'); });
+
+    renderAll();
+  </script>
+</body>
+</html>
