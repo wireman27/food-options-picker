@@ -22,7 +22,7 @@
       margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
       color: var(--ink); background: linear-gradient(#fafafa, var(--bg));
     }
-    .wrap { max-width: 720px; margin: 0 auto; padding: 20px; }
+    .wrap { max-width: 900px; margin: 0 auto; padding: 20px; }
     .card {
       background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
       box-shadow: var(--shadow); padding: 20px;
@@ -59,6 +59,11 @@
       flex: 1; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--border);
       background: white; font-size: 14px; outline: none;
     }
+
+    table { width: 100%; border-collapse: collapse; margin-top: 24px; }
+    th, td { border: 1px solid var(--border); padding: 10px; text-align: left; }
+    th { background: var(--hint); text-transform: uppercase; font-size: 12px; }
+    td { font-size: 15px; text-transform: capitalize; }
 
     footer { text-align:center; color: var(--muted); font-size: 12px; margin: 10px 0 0; }
   </style>
@@ -105,6 +110,16 @@
           </div>
         </div>
       </section>
+
+      <section id="weeklyTable">
+        <h3 style="margin-top:24px; font-size:16px;">Weekly Vegetarian Plan</h3>
+        <table>
+          <thead>
+            <tr><th>Day</th><th>Protein</th><th>Vegetable</th></tr>
+          </thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </section>
     </div>
 
     <footer>Your added items are saved in your browser.</footer>
@@ -112,14 +127,14 @@
 
   <script>
     const DEFAULT_PROTEINS = [
-      "Butter chicken",
-      "Egg curry",
-      "Indian style chicken curry",
-      "Chicken breast with garlic and cream",
       "Matar paneer",
       "Yellow dal",
       "Green dal",
       "Spinach dal",
+      "Chole",
+      "Rajma",
+      "Toor dal",
+      "Moong dal",
     ];
     const DEFAULT_VEGETABLES = [
       "Bhindi",
@@ -128,12 +143,11 @@
       "Pumpkin",
       "Beans",
       "Broccoli and mushroom",
+      "Aloo gobi",
+      "Cabbage stir fry",
     ];
 
-    const LS = {
-      proteins: "foodpicker:proteins",
-      vegetables: "foodpicker:vegetables",
-    };
+    const LS = { proteins: "foodpicker:proteins", vegetables: "foodpicker:vegetables" };
 
     const readArray = (key, fallback) => {
       try {
@@ -153,6 +167,7 @@
     const resetBtn = document.getElementById('resetBtn');
     const proteinOut = document.getElementById('proteinOut');
     const vegOut = document.getElementById('vegOut');
+    const tableBody = document.getElementById('tableBody');
 
     const proteinInput = document.getElementById('proteinInput');
     const vegInput = document.getElementById('vegInput');
@@ -175,12 +190,28 @@
 
     const renderAll = () => {
       pickBtn.disabled = !(proteins.length && vegetables.length);
+      renderTable();
+    };
+
+    const renderTable = () => {
+      const days = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+      tableBody.innerHTML = '';
+      for (let week=1; week<=2; week++) {
+        days.forEach(day => {
+          const tr = document.createElement('tr');
+          const protein = randPick(proteins);
+          const veg = randPick(vegetables);
+          tr.innerHTML = `<td>${day} (Week ${week})</td><td>${protein}</td><td>${veg}</td>`;
+          tableBody.appendChild(tr);
+        });
+      }
     };
 
     pickBtn.addEventListener('click', () => {
       if (!(proteins.length && vegetables.length)) return;
       proteinOut.textContent = randPick(proteins);
       vegOut.textContent = randPick(vegetables);
+      renderTable();
     });
 
     resetBtn.addEventListener('click', () => {
